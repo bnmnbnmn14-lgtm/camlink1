@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Link</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config={theme:{extend:{colors:{bg:'#06090f',surface:'#0c1118',card:'#121a28',border:'#1a2640',accent:'#00b4ff',green:'#00d68f',red:'#ff3b5c',yellow:'#ffb800',txt:'#b0c0d0',dim:'#3e5060',bright:'#edf2f8'},fontFamily:{sans:['Inter','sans-serif']}}}}
+    </script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:#06090f;color:#b0c0d0;min-height:100vh}
+        @keyframes up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        .up{animation:up .5s ease forwards}
+        .up1{animation:up .5s ease .1s forwards;opacity:0}
+        .up2{animation:up .5s ease .2s forwards;opacity:0}
+        .up3{animation:up .5s ease .3s forwards;opacity:0}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.8)}}
+        .pls{animation:pulse 2s ease-in-out infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .spn{animation:spin .8s linear infinite}
+        .gl{box-shadow:0 0 0 1px rgba(0,180,255,.12),0 0 50px rgba(0,180,255,.04)}
+        .gl-on{box-shadow:0 0 0 1px rgba(0,180,255,.35),0 0 60px rgba(0,180,255,.08)}
+        .cn::before,.cn::after,.cx::before,.cx::after{content:'';position:absolute;width:16px;height:16px;border-color:#00b4ff;border-style:solid;border-width:0;pointer-events:none;z-index:2}
+        .cn::before{top:5px;left:5px;border-top-width:2px;border-left-width:2px;border-top-left-radius:3px}
+        .cn::after{bottom:5px;right:5px;border-bottom-width:2px;border-right-width:2px;border-bottom-right-radius:3px}
+        .cx::before{top:5px;right:5px;border-top-width:2px;border-right-width:2px;border-top-right-radius:3px}
+        .cx::after{bottom:5px;left:5px;border-bottom-width:2px;border-left-width:2px;border-bottom-left-radius:3px}
+        .wa-btn{background:linear-gradient(135deg,#25d366,#128c7e);transition:all .2s}
+        .wa-btn:hover{box-shadow:0 0 30px rgba(37,211,102,.3);transform:translateY(-1px)}
+        .wa-btn:active{transform:scale(.97)}
+        .b-g{background:linear-gradient(135deg,#00b4ff,#007acc);transition:all .2s}
+        .b-g:hover{box-shadow:0 0 25px rgba(0,180,255,.3);transform:translateY(-1px)}
+        .b-g:active{transform:scale(.97)}
+        .b-o{border:1px solid rgba(0,180,255,.2);transition:all .15s}
+        .b-o:hover{border-color:rgba(0,180,255,.5);background:rgba(0,180,255,.04)}
+        .t-in{animation:tI .3s ease forwards}
+        @keyframes tI{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+        .t-out{animation:tO .25s ease forwards}
+        @keyframes tO{to{opacity:0;transform:translateX(20px)}}
+        input:focus{outline:none}
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#06090f}::-webkit-scrollbar-thumb{background:#1a2640;border-radius:3px}
+        .step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+    </style>
+</head>
+<body>
+
+<!-- Toasts -->
+<div id="toasts" class="fixed top-4 right-4 z-[999] flex flex-col gap-2 max-w-xs"></div>
+
+<!-- ====== SETUP SCREEN (shown if not hosted) ====== -->
+<div id="setupScreen">
+    <div class="max-w-2xl mx-auto px-4 py-12">
+        <div class="up text-center mb-10">
+            <div class="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="video" class="w-7 h-7 text-accent"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-bright mb-2">Camera Link Generator</h1>
+            <p class="text-sm text-dim">Link bhejo, friend click kare, camera aa jaye</p>
+        </div>
+
+        <!-- File warning -->
+        <div class="up1 bg-red/5 border border-red/20 rounded-2xl p-5 mb-8">
+            <div class="flex items-start gap-3">
+                <i data-lucide="alert-triangle" class="w-5 h-5 text-red mt-0.5 flex-shrink-0"></i>
+                <div>
+                    <p class="text-sm text-red font-semibold mb-1">Pehle ye file host karo!</p>
+                    <p class="text-xs text-dim leading-relaxed">file:// se ye kaam nahi karega. Neeche 3 steps follow karo — 2 minute lagenge.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Steps -->
+        <div class="space-y-4 mb-8">
+            <!-- Step 1 -->
+            <div class="up1 bg-card rounded-xl p-4 gl flex gap-4">
+                <div class="step-num bg-accent/15 text-accent">1</div>
+                <div class="flex-1">
+                    <p class="text-sm font-semibold text-bright mb-1">GitHub pe jaao aur account banao</p>
+                    <a href="https://github.com/signup" target="_blank" class="text-xs text-accent hover:underline inline-flex items-center gap-1">
+                        github.com/signup <i data-lucide="external-link" class="w-3 h-3"></i>
+                    </a>
+                </div>
+            </div>
+            <!-- Step 2 -->
+            <div class="up2 bg-card rounded-xl p-4 gl flex gap-4">
+                <div class="step-num bg-accent/15 text-accent">2</div>
+                <div class="flex-1">
+                    <p class="text-sm font-semibold text-bright mb-1">Naya repository banao</p>
+                    <div class="text-xs text-dim leading-relaxed space-y-1">
+                        <p>→ <strong class="text-txt">"New repository"</strong> click karo</p>
+                        <p>→ Name: <code class="text-accent bg-surface px-1.5 py-0.5 rounded">camlink</code></p>
+                        <p>→ <strong class="text-txt">"Add a file"</strong> → <strong class="text-txt">"Upload files"</strong></p>
+                        <p>→ Is HTML file ko upload karo</p>
+                        <p>→ <strong class="text-txt">"Commit"</strong> karo</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Step 3 -->
+            <div class="up3 bg-card rounded-xl p-4 gl flex gap-4">
+                <div class="step-num bg-accent/15 text-accent">3</div>
+                <div class="flex-1">
+                    <p class="text-sm font-semibold text-bright mb-1">GitHub Pages on karo</p>
+                    <div class="text-xs text-dim leading-relaxed space-y-1">
+                        <p>→ Repository me <strong class="text-txt">Settings</strong> jao</p>
+                        <p>→ Left me <strong class="text-txt">Pages</strong> click karo</p>
+                        <p>→ Source: <strong class="text-txt">main</strong> branch, <strong class="text-txt">/ (root)</strong></p>
+                        <p>→ <strong class="text-txt">Save</strong> karo → 1 min ruko</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- URL Input -->
+        <div class="up3 bg-card rounded-2xl gl p-6">
+            <p class="text-sm font-semibold text-bright mb-1">✅ Ab ye karo:</p>
+            <p class="text-xs text-dim mb-4">GitHub Pages ka jo link aaya (jaise neeche wala), wo paste karo:</p>
+            <div class="flex gap-2 mb-3">
+                <input id="urlInput" type="url" placeholder="https://username.github.io/camlink/camera.html" class="flex-1 bg-surface border border-border rounded-xl px-4 py-3 text-sm text-txt placeholder-dim/40 focus:border-accent/40">
+                <button onclick="goLive()" class="b-g rounded-xl px-6 py-3 text-sm text-white font-semibold">
+                    Start →
+                </button>
+            </div>
+            <p class="text-[10px] text-dim/50">Example: https://yourname.github.io/camlink/ismifileka naam.html</p>
+        </div>
+
+        <!-- Already hosted shortcut -->
+        <div class="up3 mt-6 text-center">
+            <button onclick="tryAuto()" class="text-xs text-dim hover:text-accent transition-colors underline underline-offset-2">
+                Agar already hosted hai aur phir bhi ye dikha raha hai → click karo
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ====== MAIN SCREEN (host mode - link generator) ====== -->
+<div id="mainScreen" class="hidden">
+    <header class="sticky top-0 z-50 bg-bg/80 backdrop-blur-xl border-b border-border">
+        <div class="max-w-3xl mx-auto px-4 h-11 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="video" class="w-4 h-4 text-accent"></i>
+                <span class="text-bright font-semibold text-xs">Camera Link</span>
+            </div>
+            <div id="hStat" class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-dim"></span>
+                <span class="text-[9px] text-dim uppercase tracking-widest">Loading</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 py-8">
+        <div class="up text-center mb-8">
+            <h1 class="text-xl font-bold text-bright mb-1">Link Ready!</h1>
+            <p class="text-xs text-dim">Ye link WhatsApp pe bhejo — friend click kare, camera aa jaye</p>
+        </div>
+
+        <!-- THE LINK -->
+        <div class="up1 bg-card rounded-2xl gl p-6 mb-6">
+            <label class="text-[9px] text-dim uppercase tracking-[.15em] mb-2 block">Generated Link</label>
+            <div class="bg-surface rounded-xl p-3 mb-4 border border-border">
+                <p id="linkDisplay" class="text-accent text-xs font-mono break-all leading-relaxed select-all">...</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="copyLink()" class="b-o rounded-xl px-4 py-3 text-sm text-txt flex items-center justify-center gap-2 hover:text-accent">
+                    <i data-lucide="copy" class="w-4 h-4"></i> Copy Link
+                </button>
+                <button onclick="openWhatsApp()" class="wa-btn rounded-xl px-4 py-3 text-sm text-white font-semibold flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    WhatsApp
+                </button>
+            </div>
+        </div>
+
+        <!-- QR Code -->
+        <div class="up2 bg-card rounded-2xl gl p-6 mb-6">
+            <div class="flex items-center gap-2 mb-4">
+                <i data-lucide="qr-code" class="w-4 h-4 text-accent"></i>
+                <span class="text-sm font-semibold text-bright">QR Code (Backup)</span>
+            </div>
+            <div class="flex justify-center">
+                <div class="bg-white rounded-2xl p-3">
+                    <img id="qrImg" src="" width="220" height="220" class="rounded-xl block" style="image-rendering:pixelated" alt="QR">
+                </div>
+            </div>
+            <p class="text-[10px] text-dim text-center mt-3">Agar WhatsApp link kaam na kare toh ye QR scan karo</p>
+        </div>
+
+        <!-- Status -->
+        <div id="statusBox" class="up3 bg-card rounded-2xl gl p-4 mb-6">
+            <div id="statusText" class="flex items-center gap-2 text-xs">
+                <span class="w-1.5 h-1.5 rounded-full bg-yellow pls"></span>
+                <span class="text-yellow">Link ready — abhi tak koi click nahi kiya</span>
+            </div>
+        </div>
+
+        <!-- Video Feed -->
+        <div class="up3 bg-card rounded-2xl gl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <span class="text-sm font-semibold text-bright">Friend ka Camera</span>
+                <div id="liveTag" class="hidden items-center gap-1.5 bg-red/90 rounded-full px-2.5 py-0.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-white pls"></span>
+                    <span class="text-[9px] text-white font-bold uppercase tracking-widest">Live</span>
+                </div>
+            </div>
+
+            <!-- Off -->
+            <div id="camOff" class="relative cn cx bg-surface rounded-xl h-[280px] md:h-[360px] flex items-center justify-center">
+                <div class="text-center">
+                    <i data-lucide="video-off" class="w-10 h-10 text-dim/30 mx-auto mb-2"></i>
+                    <p class="text-dim/40 text-xs">Koi connection nahi hai</p>
+                </div>
+            </div>
+
+            <!-- On -->
+            <div id="camOn" class="relative cn cx rounded-xl h-[280px] md:h-[360px] overflow-hidden bg-black hidden">
+                <video id="remVid" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                <div id="tmrTag" class="absolute top-2 right-2 bg-black/60 rounded-full px-2 py-0.5">
+                    <span class="text-[10px] text-white font-mono">00:00</span>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div id="camCtrl" class="hidden mt-4 flex flex-wrap gap-2">
+                <button onclick="goFull()" class="b-o rounded-lg px-3 py-2 text-xs text-txt flex items-center gap-1.5 hover:text-accent">
+                    <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i> Fullscreen
+                </button>
+                <button onclick="takeShot()" class="b-o rounded-lg px-3 py-2 text-xs text-txt flex items-center gap-1.5 hover:text-accent">
+                    <i data-lucide="camera" class="w-3.5 h-3.5"></i> Screenshot
+                </button>
+                <div class="flex-1"></div>
+                <button onclick="endCall()" class="rounded-lg px-3 py-2 text-xs text-white bg-red/15 border border-red/25 hover:bg-red/25 flex items-center gap-1.5 transition-colors">
+                    <i data-lucide="phone-off" class="w-3.5 h-3.5"></i> End
+                </button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ====== FRIEND SCREEN (viewer mode) ====== -->
+<div id="friendScreen" class="hidden">
+    <div class="max-w-md mx-auto px-4 py-10">
+        <div class="up text-center mb-6">
+            <div class="w-14 h-14 rounded-2xl bg-green/10 flex items-center justify-center mx-auto mb-3">
+                <i data-lucide="smartphone" class="w-6 h-6 text-green"></i>
+            </div>
+            <h1 class="text-lg font-bold text-bright mb-1">Camera Access Required</h1>
+            <p class="text-xs text-dim">Aapka camera dost ko bheja jayega</p>
+        </div>
+
+        <div id="fStatus" class="flex items-center justify-center gap-2 mb-5">
+            <div class="w-4 h-4 border-2 border-accent/20 border-t-accent rounded-full spn"></div>
+            <span class="text-accent text-xs">Camera start ho raha hai...</span>
+        </div>
+
+        <div class="cn cx rounded-xl h-[250px] overflow-hidden bg-black mb-5">
+            <video id="locVid" autoplay playsinline muted class="w-full h-full object-cover"></video>
+            <div id="shareTag" class="hidden absolute top-2 left-2 flex items-center gap-1.5 bg-green/90 rounded-full px-2.5 py-0.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-white pls"></span>
+                <span class="text-[9px] text-white font-bold uppercase tracking-widest">Sharing</span>
+            </div>
+        </div>
+
+        <div class="bg-card rounded-xl p-4 mb-4 text-center">
+            <p id="fHostId" class="text-accent text-xs font-mono">...</p>
+        </div>
+
+        <button onclick="stopSharing()" class="w-full rounded-xl px-4 py-3 text-xs text-white bg-red/15 border border-red/25 hover:bg-red/25 flex items-center justify-center gap-2 transition-colors">
+            <i data-lucide="video-off" class="w-3.5 h-3.5"></i> Stop Sharing
+        </button>
+    </div>
+</div>
+
+<canvas id="ssC" class="hidden"></canvas>
+
+<script>
+lucide.createIcons({attrs:{'stroke-width':1.5}});
+
+let peer=null,conn=null,lStream=null,tmr=null,secs=0,MY_URL='';
+
+// ====== TOAST ======
+function toast(m,t='info'){
+    const c=document.getElementById('toasts');
+    const cl={info:'border-accent/30 text-accent',success:'border-green/30 text-green',error:'border-red/30 text-red',warning:'border-yellow/30 text-yellow'};
+    const ic={info:'info',success:'check-circle',error:'x-circle',warning:'alert-triangle'};
+    const d=document.createElement('div');
+    d.className=`t-in bg-card border ${cl[t]} rounded-xl px-4 py-2.5 flex items-center gap-2 shadow-xl`;
+    d.innerHTML=`<i data-lucide="${ic[t]}" class="w-4 h-4 flex-shrink-0"></i><span class="text-xs">${m}</span>`;
+    c.appendChild(d);lucide.createIcons({attrs:{'stroke-width':1.5}});
+    setTimeout(()=>{d.classList.add('t-out');setTimeout(()=>d.remove(),250)},4000);
+}
+
+// ====== DETECT MODE ======
+const params=new URLSearchParams(window.location.search);
+const HOST_ID=params.get('c');
+
+// Check if hosted
+const isFile=location.protocol==='file:';
+const isLocalhost=location.hostname==='localhost'||location.hostname==='127.0.0.1';
+
+// ====== GO LIVE ======
+function goLive(){
+    const v=document.getElementById('urlInput').value.trim();
+    if(!v){toast('URL paste karo pehle!','warning');return}
+    if(!v.startsWith('http')){toast('URL must start with http','error');return}
+    MY_URL=v.replace(/\?c=.*$/,'').replace(/\/$/,'');
+    localStorage.setItem('camlink_url',MY_URL);
+    if(HOST_ID){initViewer(HOST_ID)}
+    else{initHost()}
+}
+
+function tryAuto(){
+    if(!isFile&&!isLocalhost){
+        MY_URL=location.href.split('?')[0];
+        if(HOST_ID) initViewer(HOST_ID);
+        else initHost();
+    }else{
+        toast('Ye file:// pe hai — pehle host karo','warning');
+    }
+}
+
+// Auto-start if already hosted and has saved URL
+if(!isFile&&!isLocalhost){
+    MY_URL=location.href.split('?')[0];
+    if(HOST_ID) initViewer(HOST_ID);
+    else initHost();
+}else{
+    // Check saved URL
+    const saved=localStorage.getItem('camlink_url');
+    if(saved){
+        document.getElementById('urlInput').value=saved;
+    }
+}
+
+// ====== HOST ======
+function initHost(){
+    document.getElementById('setupScreen').classList.add('hidden');
+    document.getElementById('mainScreen').classList.remove('hidden');
+    const id='c'+Math.random().toString(36).substr(2,8);
+
+    peer=new Peer(id,{debug:0,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}});
+    setH('Creating link...','loading');
+
+    peer.on('open',myId=>{
+        const link=MY_URL+'?c='+myId;
+        document.getElementById('linkDisplay').textContent=link;
+        // QR
+        const qrApi='https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=8&color=0a0e17&bgcolor=ffffff&ecc=M&data='+encodeURIComponent(link);
+        document.getElementById('qrImg').src=qrApi;
+        setH('Link ready','waiting');
+        toast('Link ready! Ab WhatsApp pe bhejo.','success');
+    });
+
+    peer.on('connection',c=>{
+        conn=c;
+        c.on('open',()=>{
+            setH('Connected!','connected');
+            setStatus('Phone connected! Camera load ho raha hai...','green');
+            toast('Friend ne link khola!','success');
+        });
+        c.on('data',d=>{
+            if(d.t==='ready') c.send({t:'call'});
+        });
+        c.on('close',()=>onDC());
+        c.on('error',e=>{toast('Error','error');onDC()});
+    });
+
+    peer.on('call',call=>{
+        call.answer();
+        call.on('stream',s=>{
+            const v=document.getElementById('remVid');
+            v.srcObject=s;v.play().catch(()=>{});
+            document.getElementById('camOff').classList.add('hidden');
+            document.getElementById('camOn').classList.remove('hidden');
+            document.getElementById('camCtrl').classList.remove('hidden');
+            document.getElementById('liveTag').classList.remove('hidden');
+            document.getElementById('liveTag').classList.add('flex');
+            setStatus('Camera aa raha hai — LIVE','green');
+            startTmr();
+            toast('Camera feed shuru!','success');
+        });
+        call.on('close',()=>onDC());
+    });
+
+    peer.on('error',e=>{
+        if(e.type==='unavailable-id'){peer.destroy();setTimeout(initHost,500)}
+        else{setH('Error','error');toast('Error: '+e.message,'error')}
+    });
+}
+
+// ====== VIEWER (friend) ======
+function initViewer(tid){
+    document.getElementById('setupScreen').classList.add('hidden');
+    document.getElementById('friendScreen').classList.remove('hidden');
+    document.getElementById('fHostId').textContent='Host: '+tid;
+    setH('Sharing camera','connected');
+
+    navigator.mediaDevices.getUserMedia({
+        video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false
+    }).then(stream=>{
+        lStream=stream;
+        document.getElementById('locVid').srcObject=stream;
+        document.getElementById('fStatus').innerHTML='<span class="w-1.5 h-1.5 rounded-full bg-green pls"></span><span class="text-green text-xs">Connected! Camera sharing...</span>';
+        document.getElementById('shareTag').classList.remove('hidden');
+        document.getElementById('shareTag').classList.add('flex');
+
+        peer=new Peer(undefined,{debug:0,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}});
+        peer.on('open',()=>{
+            const c=peer.connect(tid,{reliable:true});
+            conn=c;
+            c.on('open',()=>{c.send({t:'ready'})});
+            c.on('data',d=>{
+                if(d.t==='call'){
+                    const call=peer.call(tid,stream);
+                    call.on('close',()=>stopSharing());
+                    call.on('error',()=>toast('Call error','error'));
+                }
+            });
+            c.on('close',()=>stopSharing());
+            c.on('error',()=>toast('Connection failed','error'));
+        });
+        peer.on('error',e=>toast('Error: '+e.message,'error'));
+    }).catch(e=>{
+        document.getElementById('fStatus').innerHTML='<span class="w-1.5 h-1.5 rounded-full bg-red"></span><span class="text-red text-xs">Camera denied: '+e.message+'</span>';
+        toast('Camera permission denied!','error');
+    });
+}
+
+function stopSharing(){
+    if(lStream){lStream.getTracks().forEach(t=>t.stop());lStream=null}
+    if(conn)conn.close();
+    if(peer)peer.destroy();
+    document.getElementById('shareTag').classList.add('hidden');
+    document.getElementById('shareTag').classList.remove('flex');
+    document.getElementById('fStatus').innerHTML='<span class="w-1.5 h-1.5 rounded-full bg-red"></span><span class="text-red text-xs">Stopped</span>';
+    setH('Stopped','error');
+}
+
+// ====== HOST CONTROLS ======
+function onDC(){
+    stopTmr();
+    const v=document.getElementById('remVid');
+    if(v.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null}
+    document.getElementById('camOff').classList.remove('hidden');
+    document.getElementById('camOn').classList.add('hidden');
+    document.getElementById('camCtrl').classList.add('hidden');
+    document.getElementById('liveTag').classList.add('hidden');
+    document.getElementById('liveTag').classList.remove('flex');
+    setStatus('Disconnected — naya link banao ya wait karo','yellow');
+    setH('Waiting','waiting');
+}
+function endCall(){
+    if(conn)conn.close();
+    if(peer)peer.destroy();
+    onDC();toast('Disconnected','warning');
+}
+function copyLink(){
+    const t=document.getElementById('linkDisplay').textContent;
+    navigator.clipboard.writeText(t).then(()=>toast('Link copied!','success')).catch(()=>{
+        const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove();
+        toast('Link copied!','success');
+    });
+}
+function openWhatsApp(){
+    const t=document.getElementById('linkDisplay').textContent;
+    const msg='📸 *Camera Link* — Ye link kholo apna camera share hoga:\n\n'+t;
+    window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+function goFull(){
+    const el=document.getElementById('camOn');
+    if(!document.fullscreenElement)el.requestFullscreen().catch(()=>{});
+    else document.exitFullscreen();
+}
+function takeShot(){
+    const v=document.getElementById('remVid');
+    const c=document.getElementById('ssC');
+    c.width=v.videoWidth||640;c.height=v.videoHeight||480;
+    c.getContext('2d').drawImage(v,0,0);
+    c.toBlob(b=>{
+        const u=URL.createObjectURL(b);
+        const a=document.createElement('a');a.href=u;a.download='cam-'+Date.now()+'.png';a.click();
+        URL.revokeObjectURL(u);toast('Screenshot saved!','success');
+    },'image/png');
+}
+
+// ====== HELPERS ======
+function setH(txt,col){
+    const m={loading:'bg-dim',waiting:'bg-yellow',connected:'bg-green',error:'bg-red'};
+    const tc={loading:'text-dim',waiting:'text-yellow',connected:'text-green',error:'text-red'};
+    document.getElementById('hStat').innerHTML=`<span class="w-1.5 h-1.5 rounded-full ${m[col]} ${col==='waiting'?'pls':''}"></span><span class="text-[9px] ${tc[col]} uppercase tracking-widest">${txt}</span>`;
+}
+function setStatus(txt,col){
+    const cm={green:'bg-green',yellow:'bg-yellow',red:'bg-red'};
+    const tc={green:'text-green',yellow:'text-yellow',red:'text-red'};
+    document.getElementById('statusText').innerHTML=`<span class="w-1.5 h-1.5 rounded-full ${cm[col]} ${col==='yellow'?'pls':''}"></span><span class="${tc[col]}">${txt}</span>`;
+}
+function startTmr(){secs=0;updT();tmr=setInterval(()=>{secs++;updT()},1000)}
+function stopTmr(){clearInterval(tmr);tmr=null}
+function updT(){
+    const m=String(Math.floor(secs/60)).padStart(2,'0');
+    const s=String(secs%60).padStart(2,'0');
+    const el=document.querySelector('#tmrTag span');
+    if(el)el.textContent=m+':'+s;
+}
+</script>
+</body>
+</html>
